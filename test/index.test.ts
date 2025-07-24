@@ -134,11 +134,8 @@ describe('Array.prototype.tee', () => {
 
   it('should throw for invalid consumer config', () => {
     const arr: number[] = [1, 2, 3];
-    // @ts-expect-error
     expect(() => arr.tee({ fn: (x, i) => x })).toThrow();
-    // @ts-expect-error
     expect(() => arr.tee({ kind: 'map', fn: 123 })).toThrow();
-    // @ts-expect-error
     expect(() => arr.tee(null)).toThrow();
   });
 
