@@ -1,0 +1,13 @@
+{
+  "name": "tee-js",
+  "version": "0.0.1",
+  "description": "tee.js: Powerful JavaScript utilities for multi-pass data processing. Offers Array.tee(iterable, count) to split streams into independent iterators, and Array.prototype.tee(...consumers) for parallel, single-pass operations like map, filter, and reduce on arrays. Efficiently handles diverse data transformations.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
