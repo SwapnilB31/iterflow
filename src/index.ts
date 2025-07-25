@@ -264,6 +264,8 @@ Array.prototype.tee = teeConsumers;
 declare global {
   interface Array<T> {
     /**
+     * Disclaimer: This method is not a part of the ECMAScript Standard. It is attached to `Array` by `tee-js`.
+     * 
      * Applies multiple consumer operations (map, filter, reduce, forEach) in parallel to an array, using independent iterators for each consumer.
      * Each consumer receives elements and their index, and results are returned in an array matching the order of consumers.
      * Supports runtime type checking for consumer configuration and robust error handling.
@@ -287,7 +289,7 @@ declare global {
   }
   interface ArrayConstructor {
     /**
-     * Disclaimer: This method is not a part of the JS Standard. It is attached to `Array` by `tee-js`.
+     * Disclaimer: This method is not a part of the ECMAScript Standard. It is attached to `Array` by `tee-js`.
      * 
      * Creates multiple independent lazy iterators from a single iterable source, allowing parallel consumption without re-traversing the source.
      * Each returned iterator is will yield the same sequence of values as the original iterable, but can be consumed at different rates.
