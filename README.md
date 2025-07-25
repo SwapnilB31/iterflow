@@ -18,7 +18,7 @@ This project was inspired by:
 
 ## Installation
 ```bash
-npm install tee-js
+npm install git+https://github.com/SwapnilB31/tee-js
 ```
 
 ## Usage

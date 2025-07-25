@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import '../src/index.ts';
 
-describe('Array.prototype.tee', () => {
+describe('Array.tee', () => {
   it('should split an array into two independent iterators', () => {
     const arr = [1, 2, 3, 4];
     const [it1, it2] = Array.tee(arr, 2);
