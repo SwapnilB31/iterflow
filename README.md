@@ -1,108 +1,168 @@
 # tee-js
 
-Efficient, Lazy, Multi-Pass Stream Splitting for JavaScript Arrays
+Efficient, Lazy, Multi-Pass Stream Splitting and Composable Iterators for JavaScript
 
 ## Motivation
-This project was inspired by:
-- The Unix `tee` command, which splits output streams for parallel processing.
-- Python's `itertools.tee`, enabling multiple independent iterators from a single iterable.
-- Stream processing workflows and DAGs, where splitting and parallel consumption of data streams is a core requirement.
-- Curiosity about how a `tee` operation would fit into the context of ECMAScript Array methods, enabling familiar, expressive APIs for JavaScript developers.
+Inspired by the Unix `tee` command, Python's `itertools.tee`, and modern stream processing, `tee-js` brings powerful, lazy, and parallel data workflows to JavaScript. It enables you to split iterables, process streams in parallel, and build advanced pipelines with composable lazy iterators.
 
 ## Features
-- **Array.tee**: Split any iterable into multiple independent, lazy iterators. Each iterator consumes the source only as needed, supporting parallel, single-pass workflows.
-- **Array.prototype.tee**: Apply multiple consumer operations (map, filter, reduce, forEach) in parallel to an array, with results returned in the order of consumers.
-- **TypeScript Support**: Full type definitions and module augmentation for seamless integration and editor IntelliSense.
+- **Array.tee**: Split any iterable into multiple independent, lazy iterators for parallel consumption.
+- **Array.prototype.tee**: Apply multiple consumer operations (map, filter, reduce, forEach) in parallel to an array, returning results for each consumer.
+- **LazyIterator**: Chainable, composable, lazy iterator supporting map, filter, reduce, forEach, take, drop, tee, and more.
+- **TypeScript Support**: Full type definitions and module augmentation for seamless integration.
 - **Robust Error Handling**: Runtime validation of arguments and consumer configurations.
-- **Inspired by Proven Patterns**: Combines ideas from Unix, Python, and modern stream processing.
 
 ## Installation
 ```bash
 npm install git+https://github.com/SwapnilB31/tee-js
 ```
 
+## Quickstart
+```js
+import 'tee-js'; // For Array.tee and Array.prototype.tee
+import { LazyIterator } from 'tee-js'; // For LazyIterator
+```
+
 ## Usage
-### Array.tee
-
+### 1. Array.tee
+Split any iterable into multiple independent, lazy iterators:
 ```js
-import 'tee-js';
+const arr = [1,2,3,4,5,6];
+const [iter1, iter2] = Array.tee(arr,2);
 
-const arr = [1, 2, 3, 4];
-const [it1, it2] = Array.tee(arr, 2);
-console.log(it1.next().value); // 1
-console.log(it2.next().value); // 1
-console.log(it1.next().value); // 2
-console.log(it2.next().value); // 2
-```
-
-### Array.tee with Sets
-```js
-import 'tee-js';
-
-const set = new Set([10, 20, 30]);
-const [it1, it2] = Array.tee(set, 2);
-console.log(Array.from(it1)); // [10, 20, 30]
-console.log(Array.from(it2)); // [10, 20, 30]
-```
-
-### Array.tee with Generators
-```js
-import 'tee-js';
-
-function* gen() {
-  yield 'a';
-  yield 'b';
-  yield 'c';
+for(let i = 0; i < 3; i++) {
+  console.log("iter1", iter1.next());
+  console.log("iter2", iter2.next());
 }
-const [itA, itB] = Array.tee(gen(), 2);
-console.log(Array.from(itA)); // ['a', 'b', 'c']
-console.log(Array.from(itB)); // ['a', 'b', 'c']
-```
+// prints iter1: 1, 2, 3
+// prints iter2: 1, 2, 3
 
-### Array.prototype.tee
+arr.splice(3, 0, 13, 15); // mutate source array after iterator creation
+
+for(let i = 3; i < arr.length; i++) {
+  console.log("iter1", iter1.next());
+  console.log("iter2", iter2.next());
+}
+// prints iter1: 13, 15, 4, 5, 6
+// prints iter2: 13, 15, 4, 5, 6
+```
+**Note:**
+- `Array.tee` creates lazy, independent iterators that only consume the source as needed.
+- The memory overhead is constant, regardless of the number of `teed` iterators created. Never exceeding the number of elements of the source iterator.
+- If the source array is mutated after iterator creation, the iterators will reflect those changes when they reach those elements.
+
+### 2. Array.prototype.tee
+Apply multiple consumers in parallel:
 ```js
 const arr = [1, 2, 3, 4];
 const results = arr.tee(
-  { kind: 'map', fn: (x, i) => x * 2 },
-  { kind: 'filter', fn: (x, i) => x % 2 === 0 },
-  { kind: 'reduce', fn: (acc, x, i) => acc + x, initVal: 0 },
-  { kind: 'forEach', fn: (x, i) => console.log(x) }
+  { kind: 'map', fn: x => x * 2 },
+  { kind: 'filter', fn: x => x % 2 === 0 },
+  { kind: 'reduce', fn: (acc, x) => acc + x, initVal: 0 },
+  { kind: 'forEach', fn: x => console.log(x) }
 );
 // results: [[2, 4, 6, 8], [2, 4], 10, undefined]
 ```
 
-## API
+### 3. LazyIterator
+Build advanced, lazy pipelines with composable methods:
+```js
+import { LazyIterator } from 'tee-js';
+
+function* gen2dStringArr() {
+    yield ['a', 'bb', 'ccc'],
+    yield ['dddd', 'ee', 'f'],
+    yield ['ggggg', 'hhh']
+    return
+}
+
+const lazy = LazyIterator.from(gen2dStringArr())
+  .map(row => {
+    const lengths = row.map(s => s.length);
+    return {
+      minLength: Math.min(...lengths),
+      maxLength: Math.max(...lengths)
+    };
+  });
+
+console.log([...lazy]);
+// [ { minLength: 1, maxLength: 3 }, { minLength: 1, maxLength: 4 }, { minLength: 3, maxLength: 5 } ]
+
+const overall = lazy.reduce((acc, curr) => ({
+  minLength: Math.min(acc.minLength, curr.minLength),
+  maxLength: Math.max(acc.maxLength, curr.maxLength)
+}), { minLength: Infinity, maxLength: -Infinity }).execute();
+
+console.log(overall); // { minLength: 1, maxLength: 5 }
+```
+
+## API Reference
 ### Array.tee(iterable, count)
 - **iterable**: Any JavaScript iterable (Array, Set, custom iterable, etc.)
 - **count**: Number of independent iterators to create
 - **Returns**: Array of independent, lazy iterators
 
 ### Array.prototype.tee(...consumers)
-- **consumers**: One or more objects specifying `kind` (`map`, `filter`, `reduce`, `forEach`) and a function `fn`. For `reduce`, an optional `initVal` can be provided.
+- **consumers**: Objects specifying `kind` (`map`, `filter`, `reduce`, `forEach`) and a function `fn`. For `reduce`, an optional `initVal`.
 - **Returns**: Array of results, one for each consumer
 
-## Important Note: Global Namespace Pollution
-This package attaches methods directly to `Array` and `Array.prototype`, polluting the global namespace. This means:
-- All arrays in your environment will have a `.tee` method, and `Array.tee` will be available globally.
-- There is a risk of conflicts with other libraries or future ECMAScript standards that may introduce similar methods.
-- Use with caution in shared, production, or library codebases to avoid unexpected behavior or compatibility issues.
+### LazyIterator
+A composable, lazy iterator for building advanced data pipelines. Methods are divided into:
+- **Transformations (chainable, lazy):** `map`, `filter`, `forEach`
+- **Actions (terminating, eager):** `reduce`, `collect`/`toArray`, `take`, `drop`, `takeWhile`, `dropWhile`
 
-## Why is Stream Splitting Powerful?
-Splitting a stream allows you to:
-- Process the same data in multiple ways, in parallel, without re-traversing the source.
-- Enable lazy, single-pass operations for efficiency and composability in data pipelines.
-- Mirror powerful paradigms from Unix and Python in JavaScript, making your code more expressive and flexible.
+#### Transformations (Lazy, Chainable)
+- **map(fn)**: Lazily maps each value. Returns a new LazyIterator.
+- **filter(fn)**: Lazily filters values. Returns a new LazyIterator.
+- **forEach(fn)**: Lazily applies a function to each value for side effects. Pass-through: returns a LazyIterator so you can keep chaining. Example:
+  ```js
+  LazyIterator.from([1,2,3])
+    .map(x => x + 1)
+    .forEach(x => console.log(x))
+    .filter(x => x % 2 === 0)
+    .collect(); // [2, 4]
+  ```
+
+#### Actions (Terminating Operations)
+- **reduce(fn, initVal)**: Reduces values to a single result. Triggers computation. Returns a ReduceExecutor; call `.execute()` to get the result.
+- **collect() / toArray()**: Collects all values into an array. Triggers computation.
+- **take(n)**: Returns an array of the first n values. Triggers computation.
+- **drop(n)**: Returns an array after dropping the first n values. Triggers computation.
+- **takeWhile(fn)**: Returns an array of values while predicate is true. Triggers computation.
+- **dropWhile(fn)**: Returns an array after dropping values while predicate is true. Triggers computation.
+- **tee(count)**: Splits the iterator into multiple independent lazy iterators.
+- **[Symbol.iterator]()**: Makes LazyIterator compatible with for...of and spread syntax.
+
+#### Transformations vs Actions
+- **Transformations** (`map`, `filter`, `forEach`) are lazy: they build up a pipeline of operations but do not process any data until an action is called.
+- **Actions** (`reduce`, `collect`, `take`, etc.) are eager: they trigger the actual computation and consume the iterator.
+- This separation allows you to compose complex pipelines efficiently, with computation deferred until you actually need results.
+- Example:
+  ```js
+  // No computation happens until collect() is called
+  const pipeline = LazyIterator.from([1,2,3,4])
+    .map(x => x * 2)
+    .filter(x => x > 4)
+    .forEach(x => console.log('Side effect:', x));
+  const result = pipeline.collect(); // triggers all transformations
+  // Output: Side effect: 6\nSide effect: 8
+  // result: [6, 8]
+  ```
+## Composability & Lazy Evaluation
+- All LazyIterator methods are chainable and lazy; computation happens only when values are requested.
+- Enables efficient, single-pass, memory-friendly stream processing and advanced pipelines.
+
+## Global Namespace Warning
+This package attaches methods directly to `Array` and `Array.prototype`, polluting the global namespace. Use with caution in shared, production, or library codebases to avoid unexpected behavior or compatibility issues.
 
 ## Why tee-js?
 - Enables advanced stream processing and parallel workflows in JavaScript
 - Familiar API for those coming from Unix or Python backgrounds
-- Designed for correctness and developer experience
-
-## Disclaimer
-This package is experimental and created for educational purposes. It makes no claims about speed or performance and should not be used in production systems without thorough evaluation.
+- Designed for correctness, composability, and developer experience
+- LazyIterator enables expressive, efficient, and flexible data pipelines
 
 ## License
 MIT
 
 ## Author
-github.com/SwapnilB31
+[github.com/SwapnilB31](https://github.com/SwapnilB31)

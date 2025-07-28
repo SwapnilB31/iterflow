@@ -1,29 +1,13 @@
-type TeeConsumer<T, S = any> = {
-    fn: (val: T, idx: number) => S;
-    kind: 'map';
-} | {
-    fn: (val: T, idx: number) => boolean;
-    kind: 'filter';
-} | {
-    fn: (acc: S | number, curr: T, idx: number) => S | number;
-    kind: 'reduce';
-    initVal?: S | number;
-} | {
-    fn: (val: T, idx: number) => void;
-    kind: 'forEach';
-};
+import { TeeConsumer } from './tee';
+import { LazyIterator } from './lazy-iterator';
 declare global {
     interface Array<T> {
         /**
+         * Disclaimer: This method is not a part of the ECMAScript Standard. It is attached to `Array` by `tee-js`.
+         *
          * Applies multiple consumer operations (map, filter, reduce, forEach) in parallel to an array, using independent iterators for each consumer.
          * Each consumer receives elements and their index, and results are returned in an array matching the order of consumers.
          * Supports runtime type checking for consumer configuration and robust error handling.
-         *
-         * @template T - The type of elements in the array.
-         * @param {...TeeConsumer<T>} consumers - One or more consumer objects specifying the operation and function to apply.
-         * @returns {Array<any>} An array of results, one for each consumer: mapped values, filtered values, reduced result, or undefined for forEach.
-         * @throws {TypeError|Error} If invalid arguments or consumer configuration are provided.
-         *
          * @example
          * const arr = [1,2,3];
          * const results = arr.tee(
@@ -34,11 +18,11 @@ declare global {
          * );
          * // results: [[2,4,6], [1,3], 6, undefined]
          */
-        tee(...consumers: TeeConsumer<T>[]): any[];
+        tee<S>(...consumers: readonly TeeConsumer<T, S>[]): any[];
     }
     interface ArrayConstructor {
         /**
-         * Disclaimer: This method is not a part of the JS Standard. It is attached to `Array` by `tee-js`.
+         * Disclaimer: This method is not a part of the ECMAScript Standard. It is attached to `Array` by `tee-js`.
          *
          * Creates multiple independent lazy iterators from a single iterable source, allowing parallel consumption without re-traversing the source.
          * Each returned iterator is will yield the same sequence of values as the original iterable, but can be consumed at different rates.
@@ -61,4 +45,4 @@ declare global {
         tee<T>(sourceIterable: Iterable<T>, count: number): IterableIterator<T>[];
     }
 }
-export {};
+export { LazyIterator };

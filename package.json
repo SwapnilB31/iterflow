@@ -2,16 +2,15 @@
   "name": "tee-js",
   "version": "0.0.1",
   "description": "tee.js: Powerful JavaScript utilities for multi-pass data processing. Offers Array.tee(iterable, count) to split streams into independent iterators, and Array.prototype.tee(...consumers) for parallel, single-pass operations like map, filter, and reduce on arrays. Efficiently handles diverse data transformations.",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "exports": {
-    "import": "./dist/index.js",
-    "require": "./dist/index.js"
+    "import": "./dist/index.mjs",
+    "require": "./dist/index.cjs"
   },
   "scripts": {
-    "build": "npm run makedist && tsc",
-    "makedist": "! test -d dist && mkdir dist",
+    "build": "node build.cjs && tsc --emitDeclarationOnly",
     "test": "vitest",
     "test:watch": "vitest --watch"
   },
@@ -21,6 +20,7 @@
   "type": "module",
   "devDependencies": {
     "@vitest/coverage-v8": "^3.2.4",
+    "esbuild": "^0.20.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   }

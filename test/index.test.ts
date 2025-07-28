@@ -134,8 +134,11 @@ describe('Array.prototype.tee', () => {
 
   it('should throw for invalid consumer config', () => {
     const arr: number[] = [1, 2, 3];
+    //@ts-expect-error
     expect(() => arr.tee({ fn: (x, i) => x })).toThrow();
+    //@ts-expect-error
     expect(() => arr.tee({ kind: 'map', fn: 123 })).toThrow();
+    //@ts-expect-error
     expect(() => arr.tee(null)).toThrow();
   });
 
@@ -181,7 +184,26 @@ describe('Array.prototype.tee', () => {
 
   it('should handle reduce without initVal (uses first element)', () => {
     const arr: number[] = [2, 3, 4];
-    const results = arr.tee({ kind: 'reduce', fn: (acc, x, i) => acc * x });
+    //@ts-expect-errors
+    const results = arr.tee({ kind: 'reduce', fn: (acc, x, i) => acc * x, });
     expect(results[0]).toBe(24);
   });
 });
+
+
+describe("hello", () => {
+  const arr = [1,2,3,4,5,6];
+  const [iter1, iter2] = Array.tee(arr,2);
+
+  for(let i = 0; i < 3; i++) {
+    console.log("iter1",iter1.next())
+    console.log("iter2",iter2.next())
+  }
+
+  arr.splice(3, 0, 13,15);
+
+  for(let i = 3; i < arr.length; i++) {
+    console.log("iter1",iter1.next())
+    console.log("iter2",iter2.next())
+  }
+})
