@@ -191,19 +191,19 @@ describe('Array.prototype.tee', () => {
 });
 
 
-describe("hello", () => {
-  const arr = [1,2,3,4,5,6];
-  const [iter1, iter2] = Array.tee(arr,2);
+// describe("hello", () => {
+//   const arr = [1,2,3,4,5,6];
+//   const [iter1, iter2] = Array.tee(arr,2);
 
-  for(let i = 0; i < 3; i++) {
-    console.log("iter1",iter1.next())
-    console.log("iter2",iter2.next())
-  }
+//   for(let i = 0; i < 3; i++) {
+//     console.log("iter1",iter1.next())
+//     console.log("iter2",iter2.next())
+//   }
 
-  arr.splice(3, 0, 13,15);
+//   arr.splice(3, 0, 13,15);
 
-  for(let i = 3; i < arr.length; i++) {
-    console.log("iter1",iter1.next())
-    console.log("iter2",iter2.next())
-  }
-})
+//   for(let i = 3; i < arr.length; i++) {
+//     console.log("iter1",iter1.next())
+//     console.log("iter2",iter2.next())
+//   }
+// })
