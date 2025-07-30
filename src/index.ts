@@ -1,5 +1,6 @@
-import {createTeeIterators, teeConsumers, TeeConsumer} from './tee';
+import { createTeeIterators, teeConsumers, TeeConsumer } from './tee';
 import { LazyIterator } from './lazy-iterator'
+import { LazyAsyncIterator } from './lazy-async-iterator'
 
 
 
@@ -56,5 +57,6 @@ declare global {
 }
 
 export {
-    LazyIterator
+    LazyIterator,
+    LazyAsyncIterator
 };

@@ -126,6 +126,109 @@ export function createTeeIterators<T>(sourceIterable: Iterable<T>, count: number
 }
 
 
+/** Shared buffer and position helpers for tee iterators (sync/async) */
+function makeTeeBufferHelpers(count: number) {
+    const iteratorIndexPositions: number[] = Array(count).fill(0);
+    const streamBuffer: any[] = [];
+    return {
+        iteratorIndexPositions,
+        streamBuffer,
+        cleanupStreamBuffer() {
+            const smallestConsumedIndex = Math.min(...iteratorIndexPositions);
+            const deletedElementsCount = smallestConsumedIndex;
+            streamBuffer.splice(0, deletedElementsCount);
+            for (let i = 0; i < count; i++) {
+                iteratorIndexPositions[i] -= deletedElementsCount;
+            }
+        }
+    };
+}
+
+/**
+ * Creates multiple independent lazy async iterators from a single async iterable/iterator source.
+ * Each returned async iterator yields the same sequence of values as the original, but can be consumed at different rates.
+ * @template T
+ * @param {AsyncIterable<T>|AsyncIterator<T>} sourceAsyncIterable - The async iterable/iterator to split.
+ * @param {number} count - The number of async iterators to create.
+ * @returns {AsyncIterableIterator<T>[]} An array of independent async iterators.
+ * @throws {Error} If incorrect arguments are provided or the source is not async iterable/iterator.
+ */
+export function createAsyncTeeIterators<T>(sourceAsyncIterable: AsyncIterable<T> | AsyncIterator<T>, count: number): AsyncIterableIterator<T>[] {
+    if (arguments.length !== 2) throw new Error(`Expected 2 arguments but received: ${arguments.length}`);
+    if (!sourceAsyncIterable || (typeof sourceAsyncIterable !== 'object')) throw new Error(`Expected Arg 1 to be an async iterable or async iterator.`);
+    if (!(typeof count === 'number')) throw new Error(`Expected Arg 2 to be an integer`);
+    count = Math.floor(count);
+
+    // Get async iterator from input
+    let sourceIterator: AsyncIterator<T>;
+    if (typeof (sourceAsyncIterable as any)[Symbol.asyncIterator] === 'function') {
+        sourceIterator = (sourceAsyncIterable as AsyncIterable<T>)[Symbol.asyncIterator]();
+    } else if (typeof (sourceAsyncIterable as any).next === 'function') {
+        sourceIterator = sourceAsyncIterable as AsyncIterator<T>;
+    } else {
+        throw new Error('Source is not async iterable or async iterator');
+    }
+
+    const { iteratorIndexPositions, streamBuffer, cleanupStreamBuffer } = makeTeeBufferHelpers(count);
+    let streamExhausted = false;
+    let streamError: Error | null = null;
+
+    async function getNextStreamElementAsync() {
+        if (streamExhausted) return { value: undefined, done: true };
+        if (streamError) throw streamError;
+        try {
+            const result = await sourceIterator.next();
+            if (result.done) streamExhausted = true;
+            return result;
+        } catch (e) {
+            streamError = e as any as Error;
+            throw e;
+        }
+    }
+
+    function createTeedAsyncIterator(index: number): AsyncIterableIterator<T> {
+        let done = false;
+        return {
+            [Symbol.asyncIterator]() {
+                return this;
+            },
+            async next(): Promise<IteratorResult<T>> {
+                if (done) return { value: undefined, done: true };
+                if (iteratorIndexPositions[index] < streamBuffer.length) {
+                    const value = streamBuffer[iteratorIndexPositions[index]];
+                    iteratorIndexPositions[index]++;
+                    cleanupStreamBuffer();
+                    return { value, done: false };
+                }
+                const result = await getNextStreamElementAsync();
+                if (result.done) {
+                    done = true;
+                    return { done: true, value: undefined };
+                }
+                streamBuffer.push(result.value!);
+                iteratorIndexPositions[index]++;
+                cleanupStreamBuffer();
+                return { value: result.value!, done: false };
+            },
+            async return(value) {
+                if (!done) {
+                    done = true;
+                }
+                return { value, done };
+            },
+            async throw(e) {
+                if (!done) {
+                    done = true;
+                }
+                throw e;
+            }
+        };
+    }
+
+    return Array(count).fill(0).map((_, idx) => createTeedAsyncIterator(idx));
+}
+
+
 type ExtractReturnTypeFromFuncArray<T extends unknown[]> =
   T extends  [infer First, ...infer Rest] ?
     First extends (...args: any[]) => any ?

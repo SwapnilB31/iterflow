@@ -221,3 +221,38 @@ describe('LazyIterator', () => {
     expect(result).toEqual({ minLength: 1, maxLength: 5 });
   });
 });
+
+
+describe("Lazy Iterator",() => {
+  it("Additional Tests -1 ",() => {
+    function* genNumbers() {
+      yield [1,7,4] as const;
+      yield [12,-2,3] as const;
+      yield [15,16,82] as const;
+    }
+
+
+    const it = LazyIterator.from(genNumbers())
+    .map(v => ({
+      min: Math.min(...v),
+      max: Math.max(...v)
+    }))
+    .forEach(v => console.log("Mapped Value: "+JSON.stringify(v)))
+
+    console.log("Console in the middle");
+
+    it.filter(v => v.min > 0)
+
+    console.log("Console After Filter");
+
+    it.forEach(v => console.log("Filtered Value: "+JSON.stringify(v)))
+
+    const res = it.reduce((curr, acc) => ({
+      min: Math.min(acc.min, curr.min),
+      max: Math.max(acc.max, curr.min)
+    }), { max: -Infinity, min: Infinity})
+    .execute()
+
+    expect(res).toEqual({ min: 1, max: 82})
+  })
+})

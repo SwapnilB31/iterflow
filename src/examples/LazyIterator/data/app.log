@@ -1,0 +1,9 @@
+2025-07-30T09:00:01Z INFO  App started
+2025-07-30T09:01:12Z ERROR Failed to connect to DB
+2025-07-30T09:02:33Z INFO  User login: alice
+2025-07-30T09:03:45Z ERROR Timeout on request
+2025-07-30T09:04:00Z WARN  Low disk space
+2025-07-30T09:05:10Z ERROR Failed to send email
+2025-07-30T09:06:22Z INFO  User logout: bob
+2025-07-30T09:07:30Z ERROR Out of memory
+2025-07-30T09:08:00Z INFO  App shutdown
