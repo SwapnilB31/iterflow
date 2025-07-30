@@ -210,6 +210,26 @@ await LazyAsyncIterator.from(fetchPages())
 | dropWhile        | Instance        | Promise<Array>                                | Terminal, eager, throws on error              |
 | dropWhileSettled | Instance        | Promise<Array<PromiseSettledResult>>          | Terminal, returns all settled results         |
 
+---
+
+## Concurrency Control in LazyAsyncIterator
+
+A unique strength of `LazyAsyncIterator` is its **built-in concurrency control** for all action methods. When you call actions like `collect`, `take`, `drop`, `takeWhile`, or their `Settled` variants, you can specify a `concurrency` parameter:
+
+```ts
+await LazyAsyncIterator.from(fetchPages())
+  .mapAsync(page => page.items)
+  .collect(5); // Up to 5 pages processed in parallel
+```
+
+**Why is this powerful?**
+
+- **Parallelism for IO-bound tasks**: Fetch from APIs, read files, or process streams in parallel, maximizing throughput without overwhelming resources.
+- **Fine-grained control**: Tune concurrency to match your environment (e.g., number of open connections, CPU cores).
+- **Safe and predictable**: All concurrency is opt-in and explicit—no race conditions or hidden parallelism.
+- **Works with all actions**: Every terminal method (`collect`, `take`, `drop`, etc.) supports concurrency, making it easy to scale up or down as needed.
+
+> **Tip:** Use higher concurrency for network or disk IO, and lower for CPU-bound tasks.
 
 ---
 
