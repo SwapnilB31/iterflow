@@ -1,8 +1,20 @@
 import {createTeeIterators} from './tee'
 
+/**
+ * A function that maps a value and its index to a new value.
+ */
 type MapFunc<T,S> = (x: T, idx: number) => S;
+/**
+ * A function that filters values based on a predicate.
+ */
 type FilterFunc<T,S extends any = any> = (x: T, idx: number) => boolean;
+/**
+ * A function that performs a side effect for each value.
+ */
 type ForEachFunc<T,S extends any = any> = (x: T, idx: number) => void;
+/**
+ * A function that reduces values to a single accumulated result.
+ */
 type ReduceFunc<T,S> = (acc: S, curr: T, idx: number) => S;
 
 
@@ -13,24 +25,17 @@ type IteratorMethods<T,S extends any = any> =
   ReduceFunc<T,S> |
   Iterator<T>
 
-type ExtractMapTypeFromFunc<T extends unknown[]> =
-  T extends  [infer First, ...infer Rest] ?
-    First extends (...args: any[]) => any ?
-      Rest extends ((...args: any[]) => any)[] ?
-        [ReturnType<First>, ...ExtractMapTypeFromFunc<Rest>]
-      : never
-    : never
-  : [];
-
-// type rs3 = ExtractMapTypeFromFunc<[MapFunc<string, number>, ReduceFunc<number, { name: string}>]>
-
-// type x = [
-//   Iterator<number>,
-//   MapFunc<number, string>,
-// ]
+// type ExtractMapTypeFromFunc<T extends unknown[]> =
+//   T extends  [infer First, ...infer Rest] ?
+//     First extends (...args: any[]) => any ?
+//       Rest extends ((...args: any[]) => any)[] ?
+//         [ReturnType<First>, ...ExtractMapTypeFromFunc<Rest>]
+//       : never
+//     : never
+//   : [];
 
 
-type GetLast<T extends any[]> = T extends readonly [...any[], infer Last] ? 
+type GetLastMethodType<T extends any[]> = T extends readonly [...any[], infer Last] ? 
   Last extends Iterator<infer P> ?
     readonly [P,P] 
       : Last extends IteratorMethods<infer Q, infer R> ?
@@ -41,17 +46,20 @@ type GetLast<T extends any[]> = T extends readonly [...any[], infer Last] ?
 type Push<T extends any[], S extends any> = [...T, S];
 
 
-// type LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] = [Iterator<IterType>]> = {
-//   map<S>(cb: MapFunc<GetLast<Methods>[1],S>): LazyIterator<IterType, Push<Methods, MapFunc<GetLast<Methods>[1],S>>>;
-//   filter(cb: FilterFunc<GetLast<Methods>[1]>): LazyIterator<IterType, Push<Methods, FilterFunc<GetLast<Methods>[1],GetLast<Methods>[1]>>>;
-//   forEach(cb: ForEachFunc<GetLast<Methods>[1]>): LazyIterator<IterType, Push<Methods, ForEachFunc<GetLast<Methods>[1],GetLast<Methods>[1]>>>;
-//   reduce<S>(cb: ReduceFunc<GetLast<Methods>[1],S>, initVal: S): LazyIterator<IterType, Push<Methods, ReduceFunc<GetLast<Methods>[1],S>>>;
-//   collect(): GetLast<Methods>[1][]
-// }
-
+ /**
+ * A lazy, chainable iterator supporting map, filter, forEach, reduce, and other functional operations.
+ *
+ * Allows for efficient, composable data processing pipelines without creating intermediate arrays.
+ *
+ * @template IterType The type of elements in the iterator.
+ * @template Methods The chain of methods applied to the iterator.
+ *
+ * @throws Error If constructed from null or undefined, or from an invalid iterator/iterable.
+ * @throws Error If take(n) or drop(n) is called with a negative number.
+ */
 export class LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] = [Iterator<IterType>]> implements IterableIterator<IterType> {
     iterator: Iterator<IterType>;
-    methods: {
+    _methods: {
         fn: IteratorMethods<any,any>
         kind: 'map' | 'reduce' | 'forEach' | 'filter',
         initVal?: any
@@ -61,6 +69,11 @@ export class LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] =
     caughtError: Error | null;
     index: number;
 
+    /**
+     * Creates a LazyIterator from an iterator or iterable.
+     *
+     * @throws Error If the input is null, undefined, or not an iterator/iterable.
+     */
     static from<T>(iter: Iterator<T> | Iterable<T>) {
         if(iter === undefined || iter === null) throw new Error("LazyIterator cannot be created from null or undefined");
         if('next' in iter && typeof iter.next === 'function') {
@@ -75,9 +88,12 @@ export class LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] =
         throw new Error("Couldn't create LazyIterator. no valid iterator");
     }
 
+    /**
+     * Constructs a LazyIterator from a given iterator.
+     */
     constructor(iterator: Iterator<IterType>) {
         this.iterator = iterator;
-        this.methods = []
+        this._methods = []
         this.exhausted = false;
         this.caughtError = null;
         this.index = 0;
@@ -106,7 +122,12 @@ export class LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] =
         }
     }
 
-    next(): IteratorResult<GetLast<Methods>[1],undefined> {
+    /**
+     * Returns the next value in the iterator, applying all chained methods.
+     *
+     * @throws Error If the iterator is already exhausted.
+     */
+    next(): IteratorResult<GetLastMethodType<Methods>[1],undefined> {
         // if(this.methods.length === 0) return { done: true, value: undefined}; 
         if(this.exhausted) return { done: true, value: undefined} 
 
@@ -118,20 +139,20 @@ export class LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] =
                  return { done: true, value: undefined}
             }
 
-            if(this.methods.length === 0) return { value: nextVal.value, done: false} as { value: GetLast<Methods>[1], done: false}
+            if(this._methods.length === 0) return { value: nextVal.value, done: false} as { value: GetLastMethodType<Methods>[1], done: false}
 
             
             let filterFail = false;
             let a = nextVal.value;
 
-            for(let i = 0; i < this.methods.length; i++) {
-                let retVal = this.executeFunctMethod(this.methods[i], a, this.index)
+            for(let i = 0; i < this._methods.length; i++) {
+                let retVal = this.executeFunctMethod(this._methods[i], a, this.index)
                 
                 // console.log({ value: nextVal.value, retVal, kind: this.methods[i].kind});
 
-                if(this.methods[i].kind === 'map')
+                if(this._methods[i].kind === 'map')
                     a = retVal;
-                if(this.methods[i].kind === 'filter' && retVal === false) {
+                if(this._methods[i].kind === 'filter' && retVal === false) {
                     filterFail = true;
                     break
                 }
@@ -142,11 +163,14 @@ export class LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] =
 
             if(filterFail) continue;
 
-            return { done: false, value: a} as { value: GetLast<Methods>[1], done: false}
+            return { done: false, value: a} as { value: GetLastMethodType<Methods>[1], done: false}
         }
         
     }
 
+    /**
+     * Marks the iterator as exhausted and returns the given value.
+     */
     return(value: any) {
         if(!this.exhausted) {
             this.exhausted = true;
@@ -155,6 +179,9 @@ export class LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] =
         return { value, done: this.exhausted }
     }
 
+    /**
+     * Marks the iterator as exhausted due to an error.
+     */
     throw(e: any) {
         if(!this.exhausted) {
             this.exhausted = true
@@ -163,70 +190,103 @@ export class LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] =
         return { done: this.exhausted, value: undefined}
     }
 
+    /**
+     * Returns itself as an iterator.
+     */
     [Symbol.iterator]() {
         return this
     } 
 
-    map<S>(cb: MapFunc<GetLast<Methods>[1],S>) {
-        this.methods.push({
+    /**
+     * Lazily maps each value using the provided callback.
+     */
+    map<S>(cb: MapFunc<GetLastMethodType<Methods>[1],S>) {
+        this._methods.push({
             fn: cb,
             kind: 'map'
         });
 
-        return this as unknown as LazyIterator<IterType, Push<Methods, MapFunc<GetLast<Methods>[1],S>>>;
+        return this as unknown as LazyIterator<IterType, Push<Methods, MapFunc<GetLastMethodType<Methods>[1],S>>>;
     }
 
-    filter(cb: FilterFunc<GetLast<Methods>[1]>) {
-        this.methods.push({
+    /**
+     * Lazily filters values using the provided predicate.
+     */
+    filter(cb: FilterFunc<GetLastMethodType<Methods>[1]>) {
+        this._methods.push({
             fn: cb,
             kind: 'filter'
         });
 
-        return this as unknown as LazyIterator<IterType, Push<Methods, FilterFunc<GetLast<Methods>[1],GetLast<Methods>[1]>>>;
+        return this as unknown as LazyIterator<IterType, Push<Methods, FilterFunc<GetLastMethodType<Methods>[1],GetLastMethodType<Methods>[1]>>>;
     }
 
-    forEach(cb: ForEachFunc<GetLast<Methods>[1]>) {
-        this.methods.push({
+    /**
+     * Lazily performs a side effect for each value using the provided callback.
+     *
+     * Note: Unlike Array.prototype.forEach, this does not terminate or consume the iterator. It is a pass-through operation and can be used for observability (e.g., logging, debugging) within a pipeline. The iterator continues to yield values downstream.
+     */
+    forEach(cb: ForEachFunc<GetLastMethodType<Methods>[1]>) {
+        this._methods.push({
             fn: cb,
             kind: 'forEach'
         });
 
-        return this as unknown as LazyIterator<IterType, Push<Methods, ForEachFunc<GetLast<Methods>[1],GetLast<Methods>[1]>>>;
+        return this as unknown as LazyIterator<IterType, Push<Methods, ForEachFunc<GetLastMethodType<Methods>[1],GetLastMethodType<Methods>[1]>>>;
     }
 
-    reduce<S>(cb: ReduceFunc<GetLast<Methods>[1],S>, initVal: S) {
-        this.methods.push({
+    /**
+     * Lazily reduces values to a single result using the provided reducer and initial value.
+     */
+    reduce<S>(cb: ReduceFunc<GetLastMethodType<Methods>[1],S>, initVal: S) {
+        this._methods.push({
             fn: cb,
             kind: 'reduce',
             initVal
         })
 
-        const lazyIterator = this as unknown as LazyIterator<IterType, Push<Methods, ReduceFunc<GetLast<Methods>[1],S>>>
+        const lazyIterator = this as unknown as LazyIterator<IterType, Push<Methods, ReduceFunc<GetLastMethodType<Methods>[1],S>>>
 
         const reduceExec = new ReduceExecutor(lazyIterator);
 
         return reduceExec;
     }
 
-    toArray(): GetLast<Methods>[1][] {
+    /**
+     * Collects all values into an array.
+     */
+    toArray(): GetLastMethodType<Methods>[1][] {
         return this.collect()
     }
 
+    /**
+     * Creates multiple independent iterators (tees) from this iterator.
+     *
+     * @throws Error If count is not a positive integer.
+     */
     tee(count: number) {
-        return createTeeIterators<GetLast<Methods>[1]>(this, count).map(v => LazyIterator.from(v))
+        return createTeeIterators<GetLastMethodType<Methods>[1]>(this, count).map(v => LazyIterator.from(v))
     }
 
-    collect(): GetLast<Methods>[1][] {
-        const out: GetLast<Methods>[] = []
+    /**
+     * Collects all values into an array (alias for toArray).
+     */
+    collect(): GetLastMethodType<Methods>[1][] {
+        const out: GetLastMethodType<Methods>[] = []
         for(const elem of this) {
             out.push(elem)
         }
         return out
     }
 
-    take(n: number): GetLast<Methods>[1][] {
+    /**
+     * Takes the first n values from the iterator.
+     *
+     * @throws Error If n is negative or not a number.
+     */
+    take(n: number): GetLastMethodType<Methods>[1][] {
         if (typeof n !== 'number' || n < 0) throw new Error('take(n): n must be a non-negative number');
-        const out: GetLast<Methods>[1][] = [];
+        const out: GetLastMethodType<Methods>[1][] = [];
         let count = 0;
         for (const elem of this) {
             if (count++ >= n) break;
@@ -235,9 +295,14 @@ export class LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] =
         return out;
     }
 
-    drop(n: number): GetLast<Methods>[1][] {
+    /**
+     * Skips the first n values from the iterator.
+     *
+     * @throws Error If n is negative or not a number.
+     */
+    drop(n: number): GetLastMethodType<Methods>[1][] {
         if (typeof n !== 'number' || n < 0) throw new Error('drop(n): n must be a non-negative number');
-        const out: GetLast<Methods>[1][] = [];
+        const out: GetLastMethodType<Methods>[1][] = [];
         let count = 0;
         for (const elem of this) {
             if (count++ < n) continue;
@@ -246,8 +311,11 @@ export class LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] =
         return out;
     }
 
-    takeWhile(predicate: (x: GetLast<Methods>[1], idx: number) => boolean): GetLast<Methods>[1][] {
-        const out: GetLast<Methods>[1][] = [];
+    /**
+     * Takes values while the predicate returns true.
+     */
+    takeWhile(predicate: (x: GetLastMethodType<Methods>[1], idx: number) => boolean): GetLastMethodType<Methods>[1][] {
+        const out: GetLastMethodType<Methods>[1][] = [];
         let idx = 0;
         for (const elem of this) {
             if (!predicate(elem, idx)) break;
@@ -257,8 +325,11 @@ export class LazyIterator<IterType, Methods extends IteratorMethods<any,any>[] =
         return out;
     }
 
-    dropWhile(predicate: (x: GetLast<Methods>[1], idx: number) => boolean): GetLast<Methods>[1][] {
-        const out: GetLast<Methods>[1][] = [];
+    /**
+     * Skips values while the predicate returns true, then collects the rest.
+     */
+    dropWhile(predicate: (x: GetLastMethodType<Methods>[1], idx: number) => boolean): GetLastMethodType<Methods>[1][] {
+        const out: GetLastMethodType<Methods>[1][] = [];
         let idx = 0;
         let dropping = true;
         for (const elem of this) {
@@ -280,6 +351,9 @@ type ExtractLazyIteratorMethods<T extends unknown> =
     : never;
 
 
+ /**
+ * Executes a reduce operation on a LazyIterator chain.
+ */
 class ReduceExecutor<R extends any, S extends IteratorMethods<any,any>, T extends LazyIterator<R, S[]>> {
     private lazyIterator: T;
 
@@ -287,11 +361,14 @@ class ReduceExecutor<R extends any, S extends IteratorMethods<any,any>, T extend
         this.lazyIterator = lazyIterator;
     }
 
+    /**
+     * Executes the reduce operation and returns the result.
+     */
     execute() {
-        const reduceMethod = this.lazyIterator.methods.at(-1)!;
-        this.lazyIterator.methods.slice(0,-1);
+        const reduceMethod = this.lazyIterator._methods.at(-1)!;
+        this.lazyIterator._methods.slice(0,-1);
         const array = this.lazyIterator.collect();
-        const result = array.reduce(reduceMethod.fn as unknown as ReduceFunc<GetLast<ExtractLazyIteratorMethods<T>>[0],GetLast<ExtractLazyIteratorMethods<T>>[1]>, reduceMethod.initVal);
-        return result as unknown as GetLast<ExtractLazyIteratorMethods<T>>[1]
+        const result = array.reduce(reduceMethod.fn as unknown as ReduceFunc<GetLastMethodType<ExtractLazyIteratorMethods<T>>[0],GetLastMethodType<ExtractLazyIteratorMethods<T>>[1]>, reduceMethod.initVal);
+        return result as unknown as GetLastMethodType<ExtractLazyIteratorMethods<T>>[1]
     }
 }

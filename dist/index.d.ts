@@ -1,5 +1,6 @@
 import { TeeConsumer } from './tee';
 import { LazyIterator } from './lazy-iterator';
+import { LazyAsyncIterator } from './lazy-async-iterator';
 declare global {
     interface Array<T> {
         /**
@@ -45,4 +46,4 @@ declare global {
         tee<T>(sourceIterable: Iterable<T>, count: number): IterableIterator<T>[];
     }
 }
-export { LazyIterator };
+export { LazyIterator, LazyAsyncIterator };

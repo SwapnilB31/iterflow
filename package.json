@@ -1,7 +1,7 @@
 {
-  "name": "tee-js",
-  "version": "0.0.1",
-  "description": "tee.js: Powerful JavaScript utilities for multi-pass data processing. Offers Array.tee(iterable, count) to split streams into independent iterators, and Array.prototype.tee(...consumers) for parallel, single-pass operations like map, filter, and reduce on arrays. Efficiently handles diverse data transformations.",
+  "name": "iterflow",
+  "version": "0.1.0",
+  "description": "iterflow: Lazy, composable, parallel, and asynchronous pipelines for JavaScript and TypeScript. Inspired by Python's itertools.tee and Unix tee, supporting streams, files, paginated APIs, and database cursors in a single-pass, memory-efficient, optionally async manner.",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -14,9 +14,34 @@
     "test": "vitest",
     "test:watch": "vitest --watch"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "lazy",
+    "iterator",
+    "async",
+    "pipeline",
+    "tee",
+    "stream",
+    "etl",
+    "composable",
+    "functional",
+    "javascript",
+    "typescript",
+    "array",
+    "split",
+    "data-processing",
+    "single-pass",
+    "memory-efficient"
+  ],
+  "author": "Swapnil Bhattacharjee <swapnilbhattcharjee187@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SwapnilB31/iterflow"
+  },
+  "homepage": "https://github.com/SwapnilB31/iterflow#readme",
+  "bugs": {
+    "url": "https://github.com/SwapnilB31/iterflow/issues"
+  },
   "type": "module",
   "dependencies": {
     "@types/node": "^24.1.0"
