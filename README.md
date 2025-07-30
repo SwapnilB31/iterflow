@@ -199,6 +199,7 @@ await LazyAsyncIterator.from(fetchPages())
 | forEachAsync     | Instance        | LazyAsyncIterator                             | Chainable, lazy                               |
 | reduce           | Instance        | ReduceExecutor                                | Terminal, eager, throws on error              |
 | tee              | Instance        | LazyAsyncIterator[]                           | Splits into N independent pipes               |
+| toArray          | Instance        | Promise<Array>                                | Alias of collect                              | 
 | collect          | Instance        | Promise<Array>                                | Terminal, eager, throws on error              |
 | collectSettled   | Instance        | Promise<Array<PromiseSettledResult>>          | Terminal, returns all settled results         |
 | take             | Instance        | Promise<Array>                                | Terminal, eager, throws on error              |

@@ -143,6 +143,7 @@ export declare class LazyAsyncIterator<IterType, Methods extends AsyncIterMethod
      * @throws Error If an error occurs in the pipeline.
      */
     collect(concurrency?: number): Promise<GetLastMethodType<Methods>[1][]>;
+    toArray(): Promise<GetLastMethodType<Methods>[1][]>;
     /**
      * Returns all settled results (fulfilled and rejected), stops at first done. Supports concurrency.
      */

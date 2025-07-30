@@ -723,6 +723,9 @@ var LazyAsyncIterator = class _LazyAsyncIterator {
       }
     }
   }
+  async toArray() {
+    return this.collect();
+  }
   /**
    * Returns all settled results (fulfilled and rejected), stops at first done. Supports concurrency.
    */
