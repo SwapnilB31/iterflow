@@ -196,7 +196,7 @@ await LazyAsyncIterator.from(fetchPages())
 | forEach          | Instance        | LazyAsyncIterator                             | Chainable, lazy                               |
 | mapAsync         | Instance        | LazyAsyncIterator                             | Chainable, lazy                               |
 | filterAsync      | Instance        | LazyAsyncIterator                             | Chainable, lazy                               |
-| forEachASync     | Instance        | LazyAsyncIterator                             | Chainable, lazy                               |
+| forEachAsync     | Instance        | LazyAsyncIterator                             | Chainable, lazy                               |
 | reduce           | Instance        | ReduceExecutor                                | Terminal, eager, throws on error              |
 | tee              | Instance        | LazyAsyncIterator[]                           | Splits into N independent pipes               |
 | collect          | Instance        | Promise<Array>                                | Terminal, eager, throws on error              |
@@ -225,7 +225,7 @@ await LazyAsyncIterator.from(fetchPages())
 **Why is this powerful?**
 
 - **Parallelism for IO-bound tasks**: Fetch from APIs, read files, or process streams in parallel, maximizing throughput without overwhelming resources.
-- **Fine-grained control**: Tune concurrency to match your environment (e.g., number of open connections, CPU cores).
+- **Fine-grained control**: Tune concurrency to match your environment (e.g., number of open connections, number of arms of async queue).
 - **Safe and predictable**: All concurrency is opt-in and explicit—no race conditions or hidden parallelism.
 - **Works with all actions**: Every terminal method (`collect`, `take`, `drop`, etc.) supports concurrency, making it easy to scale up or down as needed.
 
